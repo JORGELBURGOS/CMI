@@ -80,7 +80,6 @@ const PERSPECTIVES_MAP = {
   "Horas de Voluntariado Corporativo": { perspectiva: "Sustainability", polaridad: "positivo" }
 };
 
-// Función para cargar los datos de la hoja de cálculo
 async function loadSheetData() {
   try {
     const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`);
@@ -98,7 +97,6 @@ async function loadSheetData() {
   }
 }
 
-// Función para obtener el mes anterior en formato Mmm-AA
 function getPreviousMonth(currentMonth) {
   const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
   const [currentMonthStr, currentYearStr] = currentMonth.split('-');
@@ -112,7 +110,6 @@ function getPreviousMonth(currentMonth) {
   }
 }
 
-// Función para obtener los meses del trimestre anterior en formato Mmm-AA
 function getPreviousQuarterMonths(currentMonth) {
   const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
   const [currentMonthStr, currentYearStr] = currentMonth.split('-');
@@ -121,21 +118,20 @@ function getPreviousQuarterMonths(currentMonth) {
   
   let quarterMonths = [];
   
-  if (currentMonthIndex >= 9) { // Oct, Nov, Dic
-    quarterMonths = [6, 7, 8]; // Jul, Ago, Sep
-  } else if (currentMonthIndex >= 6) { // Jul, Ago, Sep
-    quarterMonths = [3, 4, 5]; // Abr, May, Jun
-  } else if (currentMonthIndex >= 3) { // Abr, May, Jun
-    quarterMonths = [0, 1, 2]; // Ene, Feb, Mar
-  } else { // Ene, Feb, Mar
-    quarterMonths = [9, 10, 11]; // Oct, Nov, Dic del año anterior
+  if (currentMonthIndex >= 9) {
+    quarterMonths = [6, 7, 8];
+  } else if (currentMonthIndex >= 6) {
+    quarterMonths = [3, 4, 5];
+  } else if (currentMonthIndex >= 3) {
+    quarterMonths = [0, 1, 2];
+  } else {
+    quarterMonths = [9, 10, 11];
     return quarterMonths.map(m => `${months[m]}-${currentYear - 1}`);
   }
   
   return quarterMonths.map(m => `${months[m]}-${currentYear}`);
 }
 
-// Función principal para procesar los datos
 async function obtenerDatosDashboard(filtros) {
   try {
     const sheetData = await loadSheetData();
@@ -144,11 +140,10 @@ async function obtenerDatosDashboard(filtros) {
     const headers = sheetData[0];
     const results = [];
     
-    const periodoActual = filtros.periodo; // Formato "Mmm-AA" (ej: "Jun-24")
+    const periodoActual = filtros.periodo;
     let periodosComparacion = [];
     let comparePrefix = "";
 
-    // Determinar períodos de comparación
     if (filtros.compararCon === "Mes Anterior") {
       periodosComparacion = getPreviousMonth(periodoActual);
       comparePrefix = "Actual ";
@@ -163,11 +158,10 @@ async function obtenerDatosDashboard(filtros) {
       comparePrefix = "Actual ";
     } 
     else if (filtros.compararCon === "Budget") {
-      periodosComparacion = [periodoActual]; // Mismo periodo
+      periodosComparacion = [periodoActual];
       comparePrefix = "Budget ";
     }
     
-    // Encontrar columnas
     const actualCol = headers.indexOf(`Actual ${periodoActual}`);
     const metaCol = headers.indexOf("Meta");
     const polaridadCol = headers.indexOf("Polaridad");
@@ -178,16 +172,16 @@ async function obtenerDatosDashboard(filtros) {
       return { error: `Columna 'Actual ${periodoActual}' no encontrada.` };
     }
     
-    // Procesar filas
     for (let i = 1; i < sheetData.length; i++) {
       const row = sheetData[i];
       const actualValue = parseFloat(row[actualCol]);
       
-      // Calcular valor de comparación (promedio para trimestre anterior)
       let compareValues = [];
+      let compareValue = NaN;
+      
       for (const periodo of periodosComparacion) {
         const compareCol = headers.indexOf(`${comparePrefix}${periodo}`);
-        if (compareCol !== -1) {
+        if (compareCol !== -1 && row[compareCol] !== "") {
           const value = parseFloat(row[compareCol]);
           if (!isNaN(value)) {
             compareValues.push(value);
@@ -195,35 +189,37 @@ async function obtenerDatosDashboard(filtros) {
         }
       }
       
-      let compareValue = 0;
       if (compareValues.length > 0) {
         compareValue = compareValues.reduce((sum, val) => sum + val, 0) / compareValues.length;
-      } else {
-        compareValue = NaN;
       }
       
       const metaValue = metaCol !== -1 ? parseFloat(row[metaCol]) : null;
       const polaridad = polaridadCol !== -1 ? row[polaridadCol] : PERSPECTIVES_MAP[row[1]]?.polaridad || "positivo";
       
-      const diferenciaAbsoluta = actualValue - compareValue;
-      
-      let esFavorable;
-      if (polaridad === "negativo") {
-        esFavorable = actualValue < compareValue;
-      } else {
-        esFavorable = actualValue > compareValue;
-      }
-      
-      const diferenciaMostrar = Math.abs(diferenciaAbsoluta);
-      
+      let diferenciaAbsoluta = 0;
+      let esFavorable = false;
+      let diferenciaMostrar = "N/A";
       let cumplimiento = null;
-      if (compareValue !== 0 && !isNaN(compareValue)) {
+      
+      if (!isNaN(actualValue) && !isNaN(compareValue)) {
+        diferenciaAbsoluta = actualValue - compareValue;
+        
         if (polaridad === "negativo") {
-          cumplimiento = 100 - ((actualValue - compareValue) / compareValue) * 100;
+          esFavorable = actualValue < compareValue;
         } else {
-          cumplimiento = (actualValue / compareValue) * 100;
+          esFavorable = actualValue > compareValue;
         }
-        cumplimiento = Math.max(0, Math.min(cumplimiento, 200));
+        
+        diferenciaMostrar = Math.abs(diferenciaAbsoluta).toFixed(2);
+        
+        if (compareValue !== 0) {
+          if (polaridad === "negativo") {
+            cumplimiento = 100 - ((actualValue - compareValue) / compareValue) * 100;
+          } else {
+            cumplimiento = (actualValue / compareValue) * 100;
+          }
+          cumplimiento = Math.max(0, Math.min(cumplimiento, 200));
+        }
       }
       
       results.push({
@@ -234,9 +230,9 @@ async function obtenerDatosDashboard(filtros) {
         unidad: row[unidadCol] || "unidades",
         responsable: row[responsableCol] || "No definido",
         meta: metaValue,
-        actual: actualValue,
-        comparacion: compareValue,
-        diferencia: diferenciaMostrar.toFixed(2),
+        actual: !isNaN(actualValue) ? actualValue : null,
+        comparacion: !isNaN(compareValue) ? compareValue : null,
+        diferencia: diferenciaMostrar,
         esFavorable: esFavorable,
         cumplimiento: cumplimiento !== null ? Number(cumplimiento.toFixed(2)) : null,
         polaridad: polaridad
@@ -255,7 +251,6 @@ async function obtenerDatosDashboard(filtros) {
   }
 }
 
-// Función para mostrar error
 function showError(message) {
   const errorContainer = document.getElementById("errorContainer");
   if (errorContainer) {
@@ -273,7 +268,6 @@ function showError(message) {
   }
 }
 
-// Función para actualizar las tarjetas de resumen
 function updateSummaryCards(stats) {
   for (const [perspective, data] of Object.entries(stats)) {
     const elementId = perspective + "Summary";
@@ -299,7 +293,6 @@ function updateSummaryCards(stats) {
   }
 }
 
-// Función para renderizar una perspectiva
 function renderPerspective(perspective, data) {
   const containerId = perspective + "Metrics";
   const container = document.getElementById(containerId);
@@ -324,7 +317,6 @@ function renderPerspective(perspective, data) {
     </div>
   `;
   
-  // Ordenar por favorabilidad
   data.sort((a, b) => {
     if (a.esFavorable !== b.esFavorable) {
       return b.esFavorable - a.esFavorable;
@@ -426,18 +418,16 @@ function renderPerspective(perspective, data) {
   }, 100);
 }
 
-// Función para cargar los períodos disponibles
 async function loadAvailablePeriods() {
   const sheetData = await loadSheetData();
   if (!sheetData) return;
   
   const headers = sheetData[0];
   
-  // Extraer periodos de columnas "Actual Mmm-AA"
   const actualPeriods = headers
     .filter(h => h.startsWith("Actual "))
     .map(h => h.replace("Actual ", ""))
-    .filter(p => p.match(/[A-Za-z]{3}-\d{2}/)); // Filtra formato "Mmm-AA"
+    .filter(p => p.match(/[A-Za-z]{3}-\d{2}/));
 
   const periodoSelect = document.getElementById("periodo");
   periodoSelect.innerHTML = actualPeriods.map(p => 
@@ -449,7 +439,6 @@ async function loadAvailablePeriods() {
   }
 }
 
-// Función para cargar los datos
 async function loadData() {
   const periodo = document.getElementById("periodo").value;
   const comparacion = document.getElementById("comparacion").value;
@@ -525,13 +514,11 @@ async function loadData() {
   renderPerspective("sustainability", groupedData["Sustainability"] || []);
 }
 
-// Función para alternar la visualización de una perspectiva
 function togglePerspective(perspective) {
   const container = document.getElementById(`${perspective}Container`);
   container.classList.toggle('collapsed');
 }
 
-// Función para navegar a una perspectiva
 function scrollToPerspective(perspective) {
   const element = document.getElementById(`${perspective}Container`);
   if (element) {
@@ -543,12 +530,10 @@ function scrollToPerspective(perspective) {
   }
 }
 
-// Función para mostrar el modal
 function showMetricModal(metric) {
   alert(`Detalles del indicador: ${metric.indicador}\nValor actual: ${metric.actual}\nComparación: ${metric.comparacion}`);
 }
 
-// Función para formatear números según su unidad
 function formatNumber(value, unidad) {
   if (value === null || value === undefined) return "N/A";
   
@@ -583,7 +568,6 @@ function formatNumber(value, unidad) {
   }
 }
 
-// Inicialización
 document.addEventListener('DOMContentLoaded', function() {
   loadAvailablePeriods().then(() => {
     if (document.getElementById("periodo").options.length > 1) {
