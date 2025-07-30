@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Balanced Scorecard Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  <link href="styles.css" rel="stylesheet">
+</head>
+<body>
+  <div class="header">
+    <h1><i class="fas fa-chart-network"></i> Balanced Scorecard 360°</h1>
+  </div>
+  
+  <div class="filters">
+    <div class="filter-group">
+      <label for="periodo"><i class="fas fa-calendar-week"></i> Período Principal</label>
+      <select id="periodo">
+        <!-- Se llenará dinámicamente -->
+      </select>
+    </div>
+    
+    <div class="filter-group">
+      <label for="comparacion"><i class="fas fa-not-equal"></i> Comparar con</label>
+      <select id="comparacion">
+        <option value="Año Anterior">Año Anterior</option>
+        <option value="Trimestre Anterior">Trimestre Anterior</option>
+        <option value="Budget">Presupuesto</option>
+      </select>
+    </div>
+    
+    <button id="loadDataBtn"><i class="fas fa-sync-alt"></i> Actualizar Dashboard</button>
+  </div>
+  
+  <div id="periodDisplay" class="period-info" style="display: none;">
+    <i class="fas fa-info-circle"></i> Mostrando datos de <strong id="currentPeriod"></strong> comparados con <strong id="comparePeriod"></strong>
+  </div>
+  
+  <div id="errorContainer" style="display: none;"></div>
+  
+  <div class="dashboard-container">
+    <div class="summary-cards">
+      <div class="summary-card financial-bg" onclick="scrollToPerspective('financial')">
+        <h3><i class="fas fa-chart-line"></i> Financiero</h3>
+        <div class="summary-value" id="FinancialSummary">0%</div>
+        <p>Indicadores favorables</p>
+      </div>
+      <div class="summary-card customer-bg" onclick="scrollToPerspective('customer')">
+        <h3><i class="fas fa-users"></i> Clientes</h3>
+        <div class="summary-value" id="CustomerSummary">0%</div>
+        <p>Indicadores favorables</p>
+      </div>
+      <div class="summary-card processes-bg" onclick="scrollToPerspective('internalProcesses')">
+        <h3><i class="fas fa-cogs"></i> Procesos</h3>
+        <div class="summary-value" id="InternalProcessesSummary">0%</div>
+        <p>Indicadores favorables</p>
+      </div>
+      <div class="summary-card learning-bg" onclick="scrollToPerspective('learningGrowth')">
+        <h3><i class="fas fa-graduation-cap"></i> Aprendizaje</h3>
+        <div class="summary-value" id="LearningGrowthSummary">0%</div>
+        <p>Indicadores favorables</p>
+      </div>
+      <div class="summary-card sustainability-bg" onclick="scrollToPerspective('sustainability')">
+        <h3><i class="fas fa-leaf"></i> Sostenibilidad</h3>
+        <div class="summary-value" id="SustainabilitySummary">0%</div>
+        <p>Indicadores favorables</p>
+      </div>
+    </div>
+    
+    <div class="main-content">
+      <div id="financialContainer" class="perspective-container">
+        <div class="perspective-header financial" onclick="togglePerspective('financial')">
+          <h2><i class="fas fa-chart-line"></i> Perspectiva Financiera</h2>
+          <span class="count" id="FinancialCount">0 KPI</span>
+          <i class="fas fa-chevron-down toggle-icon"></i>
+        </div>
+        <div id="financialMetrics" class="metrics-container">
+          <div class="loading"><i class="fas fa-spinner"></i> Cargando datos financieros...</div>
+        </div>
+      </div>
+      
+      <div id="customerContainer" class="perspective-container">
+        <div class="perspective-header customer" onclick="togglePerspective('customer')">
+          <h2><i class="fas fa-users"></i> Perspectiva del Cliente</h2>
+          <span class="count" id="CustomerCount">0 KPI</span>
+          <i class="fas fa-chevron-down toggle-icon"></i>
+        </div>
+        <div id="customerMetrics" class="metrics-container">
+          <div class="loading"><i class="fas fa-spinner"></i> Cargando datos de clientes...</div>
+        </div>
+      </div>
+      
+      <div id="internalProcessesContainer" class="perspective-container">
+        <div class="perspective-header processes" onclick="togglePerspective('internalProcesses')">
+          <h2><i class="fas fa-cogs"></i> Procesos Internos</h2>
+          <span class="count" id="InternalProcessesCount">0 KPI</span>
+          <i class="fas fa-chevron-down toggle-icon"></i>
+        </div>
+        <div id="internalProcessesMetrics" class="metrics-container">
+          <div class="loading"><i class="fas fa-spinner"></i> Cargando datos de procesos...</div>
+        </div>
+      </div>
+      
+      <div id="learningGrowthContainer" class="perspective-container">
+        <div class="perspective-header learning" onclick="togglePerspective('learningGrowth')">
+          <h2><i class="fas fa-graduation-cap"></i> Aprendizaje y Crecimiento</h2>
+          <span class="count" id="LearningGrowthCount">0 KPI</span>
+          <i class="fas fa-chevron-down toggle-icon"></i>
+        </div>
+        <div id="learningGrowthMetrics" class="metrics-container">
+          <div class="loading"><i class="fas fa-spinner"></i> Cargando datos de aprendizaje...</div>
+        </div>
+      </div>
+      
+      <div id="sustainabilityContainer" class="perspective-container">
+        <div class="perspective-header sustainability" onclick="togglePerspective('sustainability')">
+          <h2><i class="fas fa-leaf"></i> Sostenibilidad</h2>
+          <span class="count" id="SustainabilityCount">0 KPI</span>
+          <i class="fas fa-chevron-down toggle-icon"></i>
+        </div>
+        <div id="sustainabilityMetrics" class="metrics-container">
+          <div class="loading"><i class="fas fa-spinner"></i> Cargando datos de sostenibilidad...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
