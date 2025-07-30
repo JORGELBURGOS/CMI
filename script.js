@@ -106,32 +106,33 @@ function getPreviousMonth(currentMonth) {
   const currentMonthIndex = months.indexOf(currentMonthStr);
   
   if (currentMonthIndex === 0) {
-    return `${months[11]}-${currentYear - 1}`;
+    return [`${months[11]}-${currentYear - 1}`];
   } else {
-    return `${months[currentMonthIndex - 1]}-${currentYear}`;
+    return [`${months[currentMonthIndex - 1]}-${currentYear}`];
   }
 }
 
-// Función para obtener el trimestre anterior en formato Mmm-AA
-function getPreviousQuarter(currentMonth) {
+// Función para obtener los meses del trimestre anterior en formato Mmm-AA
+function getPreviousQuarterMonths(currentMonth) {
   const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
   const [currentMonthStr, currentYearStr] = currentMonth.split('-');
   const currentYear = parseInt(currentYearStr);
   const currentMonthIndex = months.indexOf(currentMonthStr);
   
-  let quarterStartMonthIndex;
+  let quarterMonths = [];
+  
   if (currentMonthIndex >= 9) { // Oct, Nov, Dic
-    quarterStartMonthIndex = 6; // Jul
+    quarterMonths = [6, 7, 8]; // Jul, Ago, Sep
   } else if (currentMonthIndex >= 6) { // Jul, Ago, Sep
-    quarterStartMonthIndex = 3; // Abr
+    quarterMonths = [3, 4, 5]; // Abr, May, Jun
   } else if (currentMonthIndex >= 3) { // Abr, May, Jun
-    quarterStartMonthIndex = 0; // Ene
+    quarterMonths = [0, 1, 2]; // Ene, Feb, Mar
   } else { // Ene, Feb, Mar
-    quarterStartMonthIndex = 9; // Oct del año anterior
-    return `${months[quarterStartMonthIndex]}-${currentYear - 1}`;
+    quarterMonths = [9, 10, 11]; // Oct, Nov, Dic del año anterior
+    return quarterMonths.map(m => `${months[m]}-${currentYear - 1}`);
   }
   
-  return `${months[quarterStartMonthIndex]}-${currentYear}`;
+  return quarterMonths.map(m => `${months[m]}-${currentYear}`);
 }
 
 // Función principal para procesar los datos
@@ -144,31 +145,30 @@ async function obtenerDatosDashboard(filtros) {
     const results = [];
     
     const periodoActual = filtros.periodo; // Formato "Mmm-AA" (ej: "Jun-24")
-    let periodoComparacion = "";
+    let periodosComparacion = [];
     let comparePrefix = "";
 
-    // Determinar período de comparación
+    // Determinar períodos de comparación
     if (filtros.compararCon === "Mes Anterior") {
-      periodoComparacion = getPreviousMonth(periodoActual);
+      periodosComparacion = getPreviousMonth(periodoActual);
       comparePrefix = "Actual ";
     } 
     else if (filtros.compararCon === "Trimestre Anterior") {
-      periodoComparacion = getPreviousQuarter(periodoActual);
+      periodosComparacion = getPreviousQuarterMonths(periodoActual);
       comparePrefix = "Actual ";
     }
     else if (filtros.compararCon === "Año Anterior") {
       const [mes, anio] = periodoActual.split('-');
-      periodoComparacion = `${mes}-${parseInt(anio)-1}`;
+      periodosComparacion = [`${mes}-${parseInt(anio)-1}`];
       comparePrefix = "Actual ";
     } 
     else if (filtros.compararCon === "Budget") {
-      periodoComparacion = periodoActual; // Mismo periodo
+      periodosComparacion = [periodoActual]; // Mismo periodo
       comparePrefix = "Budget ";
     }
     
     // Encontrar columnas
     const actualCol = headers.indexOf(`Actual ${periodoActual}`);
-    const compareCol = headers.indexOf(`${comparePrefix}${periodoComparacion}`);
     const metaCol = headers.indexOf("Meta");
     const polaridadCol = headers.indexOf("Polaridad");
     const unidadCol = headers.indexOf("Unidad");
@@ -178,15 +178,30 @@ async function obtenerDatosDashboard(filtros) {
       return { error: `Columna 'Actual ${periodoActual}' no encontrada.` };
     }
     
-    if (compareCol === -1) {
-      return { error: `Columna '${comparePrefix}${periodoComparacion}' no encontrada.` };
-    }
-    
     // Procesar filas
     for (let i = 1; i < sheetData.length; i++) {
       const row = sheetData[i];
       const actualValue = parseFloat(row[actualCol]);
-      const compareValue = parseFloat(row[compareCol]);
+      
+      // Calcular valor de comparación (promedio para trimestre anterior)
+      let compareValues = [];
+      for (const periodo of periodosComparacion) {
+        const compareCol = headers.indexOf(`${comparePrefix}${periodo}`);
+        if (compareCol !== -1) {
+          const value = parseFloat(row[compareCol]);
+          if (!isNaN(value)) {
+            compareValues.push(value);
+          }
+        }
+      }
+      
+      let compareValue = 0;
+      if (compareValues.length > 0) {
+        compareValue = compareValues.reduce((sum, val) => sum + val, 0) / compareValues.length;
+      } else {
+        compareValue = NaN;
+      }
+      
       const metaValue = metaCol !== -1 ? parseFloat(row[metaCol]) : null;
       const polaridad = polaridadCol !== -1 ? row[polaridadCol] : PERSPECTIVES_MAP[row[1]]?.polaridad || "positivo";
       
@@ -231,7 +246,7 @@ async function obtenerDatosDashboard(filtros) {
     return { 
       data: results,
       periodoActual: periodoActual,
-      periodoComparacion: periodoComparacion,
+      periodoComparacion: periodosComparacion.join(", "),
       tipoComparacion: filtros.compararCon
     };
     
@@ -470,7 +485,9 @@ async function loadData() {
   const comparePeriod = document.getElementById("comparePeriod");
   
   if (currentPeriod) currentPeriod.textContent = response.periodoActual;
-  if (comparePeriod) comparePeriod.textContent = response.periodoComparacion;
+  if (comparePeriod) comparePeriod.textContent = response.tipoComparacion === "Trimestre Anterior" 
+    ? `${response.tipoComparacion} (${response.periodoComparacion})` 
+    : response.periodoComparacion;
   if (periodDisplay) {
     periodDisplay.style.display = "flex";
     periodDisplay.classList.add('animate-fade');
