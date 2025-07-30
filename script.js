@@ -98,7 +98,43 @@ async function loadSheetData() {
   }
 }
 
-// Función principal para procesar los datos (ADAPTADA A TUS COLUMNAS)
+// Función para obtener el mes anterior en formato Mmm-AA
+function getPreviousMonth(currentMonth) {
+  const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+  const [currentMonthStr, currentYearStr] = currentMonth.split('-');
+  const currentYear = parseInt(currentYearStr);
+  const currentMonthIndex = months.indexOf(currentMonthStr);
+  
+  if (currentMonthIndex === 0) {
+    return `${months[11]}-${currentYear - 1}`;
+  } else {
+    return `${months[currentMonthIndex - 1]}-${currentYear}`;
+  }
+}
+
+// Función para obtener el trimestre anterior en formato Mmm-AA
+function getPreviousQuarter(currentMonth) {
+  const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+  const [currentMonthStr, currentYearStr] = currentMonth.split('-');
+  const currentYear = parseInt(currentYearStr);
+  const currentMonthIndex = months.indexOf(currentMonthStr);
+  
+  let quarterStartMonthIndex;
+  if (currentMonthIndex >= 9) { // Oct, Nov, Dic
+    quarterStartMonthIndex = 6; // Jul
+  } else if (currentMonthIndex >= 6) { // Jul, Ago, Sep
+    quarterStartMonthIndex = 3; // Abr
+  } else if (currentMonthIndex >= 3) { // Abr, May, Jun
+    quarterStartMonthIndex = 0; // Ene
+  } else { // Ene, Feb, Mar
+    quarterStartMonthIndex = 9; // Oct del año anterior
+    return `${months[quarterStartMonthIndex]}-${currentYear - 1}`;
+  }
+  
+  return `${months[quarterStartMonthIndex]}-${currentYear}`;
+}
+
+// Función principal para procesar los datos
 async function obtenerDatosDashboard(filtros) {
   try {
     const sheetData = await loadSheetData();
@@ -111,8 +147,16 @@ async function obtenerDatosDashboard(filtros) {
     let periodoComparacion = "";
     let comparePrefix = "";
 
-    // Determinar período de comparación (adaptado a tu estructura)
-    if (filtros.compararCon === "Año Anterior") {
+    // Determinar período de comparación
+    if (filtros.compararCon === "Mes Anterior") {
+      periodoComparacion = getPreviousMonth(periodoActual);
+      comparePrefix = "Actual ";
+    } 
+    else if (filtros.compararCon === "Trimestre Anterior") {
+      periodoComparacion = getPreviousQuarter(periodoActual);
+      comparePrefix = "Actual ";
+    }
+    else if (filtros.compararCon === "Año Anterior") {
       const [mes, anio] = periodoActual.split('-');
       periodoComparacion = `${mes}-${parseInt(anio)-1}`;
       comparePrefix = "Actual ";
@@ -122,7 +166,7 @@ async function obtenerDatosDashboard(filtros) {
       comparePrefix = "Budget ";
     }
     
-    // Encontrar columnas (adaptado a tus nombres exactos)
+    // Encontrar columnas
     const actualCol = headers.indexOf(`Actual ${periodoActual}`);
     const compareCol = headers.indexOf(`${comparePrefix}${periodoComparacion}`);
     const metaCol = headers.indexOf("Meta");
@@ -187,7 +231,8 @@ async function obtenerDatosDashboard(filtros) {
     return { 
       data: results,
       periodoActual: periodoActual,
-      periodoComparacion: periodoComparacion
+      periodoComparacion: periodoComparacion,
+      tipoComparacion: filtros.compararCon
     };
     
   } catch (e) {
@@ -366,7 +411,7 @@ function renderPerspective(perspective, data) {
   }, 100);
 }
 
-// Función para cargar los períodos disponibles (ADAPTADA A TUS COLUMNAS)
+// Función para cargar los períodos disponibles
 async function loadAvailablePeriods() {
   const sheetData = await loadSheetData();
   if (!sheetData) return;
