@@ -5,7 +5,6 @@ const API_KEY = 'AIzaSyCSKa4k3fyULiZmH7ZZKkEYz2NWZ5EI2qI';
 
 // Mapa de perspectivas
 const PERSPECTIVES_MAP = {
-  // Financiero
   "Margen Neto": { perspectiva: "Financial", polaridad: "positivo" },
   "ROI": { perspectiva: "Financial", polaridad: "positivo" },
   "ROE": { perspectiva: "Financial", polaridad: "positivo" },
@@ -19,8 +18,6 @@ const PERSPECTIVES_MAP = {
   "Margen Bruto": { perspectiva: "Financial", polaridad: "positivo" },
   "Costos Fijos/Variables": { perspectiva: "Financial", polaridad: "negativo" },
   "Crecimiento de Ingresos": { perspectiva: "Financial", polaridad: "positivo" },
-  
-  // Clientes
   "Satisfacción del Cliente": { perspectiva: "Customer", polaridad: "positivo" },
   "NPS (Net Promoter Score)": { perspectiva: "Customer", polaridad: "positivo" },
   "Tasa de Retención de Clientes": { perspectiva: "Customer", polaridad: "positivo" },
@@ -39,8 +36,6 @@ const PERSPECTIVES_MAP = {
   "Tasa de Uso de App/Plataforma": { perspectiva: "Customer", polaridad: "positivo" },
   "Satisfacción Post-Venta": { perspectiva: "Customer", polaridad: "positivo" },
   "Tasa de Cancelación": { perspectiva: "Customer", polaridad: "negativo" },
-  
-  // Procesos Internos
   "Eficiencia de Producción": { perspectiva: "InternalProcesses", polaridad: "positivo" },
   "Tiempo de Ciclo de Fabricación": { perspectiva: "InternalProcesses", polaridad: "negativo" },
   "Defectos por Millón de Unidades": { perspectiva: "InternalProcesses", polaridad: "negativo" },
@@ -63,8 +58,6 @@ const PERSPECTIVES_MAP = {
   "Procesos Optimizados": { perspectiva: "InternalProcesses", polaridad: "positivo" },
   "Tasa de Accidentes Laborales": { perspectiva: "InternalProcesses", polaridad: "negativo" },
   "Cumplimiento de Normativas": { perspectiva: "InternalProcesses", polaridad: "positivo" },
-  
-  // Aprendizaje y Crecimiento
   "Horas de Capacitación por Empleado": { perspectiva: "LearningGrowth", polaridad: "positivo" },
   "Retención de Talento Clave": { perspectiva: "LearningGrowth", polaridad: "positivo" },
   "Índice de Satisfacción Laboral": { perspectiva: "LearningGrowth", polaridad: "positivo" },
@@ -72,8 +65,6 @@ const PERSPECTIVES_MAP = {
   "Tasa de Promoción Interna": { perspectiva: "LearningGrowth", polaridad: "positivo" },
   "Adopción de Nuevas Tecnologías": { perspectiva: "LearningGrowth", polaridad: "positivo" },
   "Participación en Programas de Desarrollo": { perspectiva: "LearningGrowth", polaridad: "positivo" },
-  
-  // Sostenibilidad
   "Huella de Carbono": { perspectiva: "Sustainability", polaridad: "negativo" },
   "Porcentaje de Energía Renovable": { perspectiva: "Sustainability", polaridad: "positivo" },
   "Diversidad en Puestos Gerenciales": { perspectiva: "Sustainability", polaridad: "positivo" },
@@ -84,11 +75,7 @@ async function loadSheetData() {
   try {
     const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`);
     const data = await response.json();
-    
-    if (!data.values) {
-      throw new Error("No se encontraron datos en la hoja de cálculo");
-    }
-    
+    if (!data.values) throw new Error("No se encontraron datos en la hoja de cálculo");
     return data.values;
   } catch (error) {
     console.error("Error al cargar datos:", error);
@@ -102,12 +89,8 @@ function getPreviousMonth(currentMonth) {
   const [currentMonthStr, currentYearStr] = currentMonth.split('-');
   const currentYear = parseInt(currentYearStr);
   const currentMonthIndex = months.indexOf(currentMonthStr);
-  
-  if (currentMonthIndex === 0) {
-    return [`${months[11]}-${currentYear - 1}`];
-  } else {
-    return [`${months[currentMonthIndex - 1]}-${currentYear}`];
-  }
+  if (currentMonthIndex === 0) return [`${months[11]}-${currentYear - 1}`];
+  return [`${months[currentMonthIndex - 1]}-${currentYear}`];
 }
 
 function getPreviousQuarterMonths(currentMonth) {
@@ -115,20 +98,15 @@ function getPreviousQuarterMonths(currentMonth) {
   const [currentMonthStr, currentYearStr] = currentMonth.split('-');
   const currentYear = parseInt(currentYearStr);
   const currentMonthIndex = months.indexOf(currentMonthStr);
-  
   let quarterMonths = [];
   
-  if (currentMonthIndex >= 9) {
-    quarterMonths = [6, 7, 8];
-  } else if (currentMonthIndex >= 6) {
-    quarterMonths = [3, 4, 5];
-  } else if (currentMonthIndex >= 3) {
-    quarterMonths = [0, 1, 2];
-  } else {
+  if (currentMonthIndex >= 9) quarterMonths = [6, 7, 8];
+  else if (currentMonthIndex >= 6) quarterMonths = [3, 4, 5];
+  else if (currentMonthIndex >= 3) quarterMonths = [0, 1, 2];
+  else {
     quarterMonths = [9, 10, 11];
     return quarterMonths.map(m => `${months[m]}-${currentYear - 1}`);
   }
-  
   return quarterMonths.map(m => `${months[m]}-${currentYear}`);
 }
 
@@ -139,7 +117,6 @@ async function obtenerDatosDashboard(filtros) {
     
     const headers = sheetData[0];
     const results = [];
-    
     const periodoActual = filtros.periodo;
     let periodosComparacion = [];
     let comparePrefix = "";
@@ -168,30 +145,23 @@ async function obtenerDatosDashboard(filtros) {
     const unidadCol = headers.indexOf("Unidad");
     const responsableCol = headers.indexOf("Responsable");
     
-    if (actualCol === -1) {
-      return { error: `Columna 'Actual ${periodoActual}' no encontrada.` };
-    }
+    if (actualCol === -1) return { error: `Columna 'Actual ${periodoActual}' no encontrada.` };
     
     for (let i = 1; i < sheetData.length; i++) {
       const row = sheetData[i];
       const actualValue = parseFloat(row[actualCol]);
       
       let compareValues = [];
-      let compareValue = NaN;
-      
       for (const periodo of periodosComparacion) {
         const compareCol = headers.indexOf(`${comparePrefix}${periodo}`);
         if (compareCol !== -1 && row[compareCol] !== "") {
           const value = parseFloat(row[compareCol]);
-          if (!isNaN(value)) {
-            compareValues.push(value);
-          }
+          if (!isNaN(value)) compareValues.push(value);
         }
       }
       
-      if (compareValues.length > 0) {
-        compareValue = compareValues.reduce((sum, val) => sum + val, 0) / compareValues.length;
-      }
+      const compareValue = compareValues.length > 0 ? 
+        compareValues.reduce((sum, val) => sum + val, 0) / compareValues.length : NaN;
       
       const metaValue = metaCol !== -1 ? parseFloat(row[metaCol]) : null;
       const polaridad = polaridadCol !== -1 ? row[polaridadCol] : PERSPECTIVES_MAP[row[1]]?.polaridad || "positivo";
@@ -203,21 +173,13 @@ async function obtenerDatosDashboard(filtros) {
       
       if (!isNaN(actualValue) && !isNaN(compareValue)) {
         diferenciaAbsoluta = actualValue - compareValue;
-        
-        if (polaridad === "negativo") {
-          esFavorable = actualValue < compareValue;
-        } else {
-          esFavorable = actualValue > compareValue;
-        }
-        
+        esFavorable = polaridad === "negativo" ? actualValue < compareValue : actualValue > compareValue;
         diferenciaMostrar = Math.abs(diferenciaAbsoluta).toFixed(2);
         
         if (compareValue !== 0) {
-          if (polaridad === "negativo") {
-            cumplimiento = 100 - ((actualValue - compareValue) / compareValue) * 100;
-          } else {
-            cumplimiento = (actualValue / compareValue) * 100;
-          }
+          cumplimiento = polaridad === "negativo" 
+            ? 100 - ((actualValue - compareValue) / compareValue) * 100 
+            : (actualValue / compareValue) * 100;
           cumplimiento = Math.max(0, Math.min(cumplimiento, 200));
         }
       }
@@ -272,23 +234,15 @@ function updateSummaryCards(stats) {
   for (const [perspective, data] of Object.entries(stats)) {
     const elementId = perspective + "Summary";
     const element = document.getElementById(elementId);
-    
     if (element && data.total > 0) {
       const percentage = Math.round((data.favorable / data.total) * 100);
       element.textContent = `${percentage}%`;
-      
-      if (percentage >= 70) {
-        element.className = "summary-value positive";
-      } else if (percentage >= 40) {
-        element.className = "summary-value neutral";
-      } else {
-        element.className = "summary-value negative";
-      }
+      if (percentage >= 70) element.className = "summary-value positive";
+      else if (percentage >= 40) element.className = "summary-value neutral";
+      else element.className = "summary-value negative";
       
       const countElement = document.getElementById(perspective + "Count");
-      if (countElement) {
-        countElement.textContent = `${data.total} KPI`;
-      }
+      if (countElement) countElement.textContent = `${data.total} KPI`;
     }
   }
 }
@@ -296,126 +250,103 @@ function updateSummaryCards(stats) {
 function renderPerspective(perspective, data) {
   const containerId = perspective + "Metrics";
   const container = document.getElementById(containerId);
-  
   if (!container) {
     console.error(`Contenedor no encontrado: ${containerId}`);
     return;
   }
   
+  container.innerHTML = '';
+  
   if (!data || data.length === 0) {
     container.innerHTML = '<div class="no-data">No hay datos disponibles para esta perspectiva</div>';
     return;
   }
+
+  const table = document.createElement('div');
+  table.className = 'metrics-table';
   
-  let html = `
-    <div class="metric-header">
-      <div>Indicador</div>
-      <div>Actual</div>
-      <div>Comparación</div>
-      <div>Diferencia</div>
-      <div>Cumplimiento</div>
-    </div>
+  const header = document.createElement('div');
+  header.className = 'metric-header';
+  header.innerHTML = `
+    <div>Indicador</div>
+    <div>Actual</div>
+    <div>Comparación</div>
+    <div>Diferencia</div>
+    <div>Cumplimiento</div>
   `;
-  
+  table.appendChild(header);
+
   data.sort((a, b) => {
-    if (a.esFavorable !== b.esFavorable) {
-      return b.esFavorable - a.esFavorable;
-    }
+    if (a.esFavorable !== b.esFavorable) return b.esFavorable - a.esFavorable;
     return parseFloat(b.diferencia) - parseFloat(a.diferencia);
   });
-  
-  data.forEach(item => {
-    const diferencia = parseFloat(item.diferencia);
-    const cumplimiento = item.cumplimiento ? parseFloat(item.cumplimiento) : null;
-    
-    let trendIcon, trendClass;
-    if (item.esFavorable) {
-      trendIcon = '<i class="fas fa-arrow-up icon-up"></i>';
-      trendClass = "positive";
-    } else {
-      trendIcon = '<i class="fas fa-arrow-down icon-down"></i>';
-      trendClass = "negative";
-    }
-    
-    let progressBar = '';
-    let cumplimientoText = 'N/A';
-    let progressWidth = 0;
-    let progressColor = "var(--neutral)";
-    
-    if (cumplimiento !== null) {
-      progressWidth = Math.min(Math.max(cumplimiento, 0), 100);
-      cumplimientoText = `${cumplimiento.toFixed(0)}%`;
-      
-      if (cumplimiento >= 90) {
-        progressColor = "var(--positive)";
-      } else if (cumplimiento >= 70) {
-        progressColor = "var(--neutral)";
-      } else {
-        progressColor = "var(--negative)";
-      }
-      
-      progressBar = `
-        <div class="progress-container">
-          <div class="progress-text">${cumplimientoText}</div>
-          <div class="progress-bar">
-            <div class="progress-fill" style="width: ${progressWidth}%; background: ${progressColor};"></div>
-          </div>
+
+  data.forEach((item, index) => {
+    const card = document.createElement('div');
+    card.className = 'metric-card';
+    card.innerHTML = `
+      <div class="metric-name">
+        <strong>${item.indicador}</strong>
+        <div class="metric-responsable">
+          ${getPerspectiveIcon(item.perspectiva)} ${item.responsable} | ${item.unidad}
         </div>
-      `;
-    } else {
-      progressBar = '<div class="progress-text">N/A</div>';
-    }
-    
-    const actualFormatted = formatNumber(item.actual, item.unidad);
-    const comparacionFormatted = formatNumber(item.comparacion, item.unidad);
-    const diferenciaFormatted = formatNumber(diferencia, item.unidad);
-    
-    const polaridadText = item.polaridad === "negativo" ? 
-      '<i class="fas fa-arrow-down"></i> Menor valor es mejor' : 
-      '<i class="fas fa-arrow-up"></i> Mayor valor es mejor';
-    
-    let perspectiveIcon = '';
-    switch(item.perspectiva) {
-      case "Financial": perspectiveIcon = '<i class="fas fa-chart-line"></i>'; break;
-      case "Customer": perspectiveIcon = '<i class="fas fa-users"></i>'; break;
-      case "InternalProcesses": perspectiveIcon = '<i class="fas fa-cogs"></i>'; break;
-      case "LearningGrowth": perspectiveIcon = '<i class="fas fa-graduation-cap"></i>'; break;
-      case "Sustainability": perspectiveIcon = '<i class="fas fa-leaf"></i>'; break;
-      default: perspectiveIcon = '<i class="fas fa-chart-pie"></i>';
-    }
-    
-    html += `
-      <div class="metric-card" onclick="showMetricModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">
-        <div class="metric-name">
-          <strong>${item.indicador}</strong>
-          <div class="metric-responsable">
-            ${perspectiveIcon} ${item.responsable} | ${item.unidad}
-          </div>
-          <div class="formula-info">${item.formula.replace(/^'=/, "")}</div>
-          <div class="polarity-info">${polaridadText}</div>
-        </div>
-        <div class="metric-value">${actualFormatted}</div>
-        <div class="metric-value">${comparacionFormatted}</div>
-        <div class="metric-comparison ${trendClass}">
-          ${trendIcon} ${diferenciaFormatted}
-        </div>
-        <div class="metric-meta">
-          ${progressBar}
+        <div class="formula-info">${item.formula.replace(/^'=/, "")}</div>
+        <div class="polarity-info">
+          ${item.polaridad === "negativo" 
+            ? '<i class="fas fa-arrow-down"></i> Menor valor es mejor' 
+            : '<i class="fas fa-arrow-up"></i> Mayor valor es mejor'}
         </div>
       </div>
+      <div class="metric-value">${formatNumber(item.actual, item.unidad)}</div>
+      <div class="metric-value">${formatNumber(item.comparacion, item.unidad)}</div>
+      <div class="metric-comparison ${item.esFavorable ? 'positive' : 'negative'}">
+        ${item.esFavorable 
+          ? '<i class="fas fa-arrow-up icon-up"></i>' 
+          : '<i class="fas fa-arrow-down icon-down"></i>'} 
+        ${formatNumber(item.diferencia, item.unidad)}
+      </div>
+      <div class="metric-meta">
+        ${renderProgressBar(item.cumplimiento)}
+      </div>
     `;
+    
+    card.addEventListener('click', () => showMetricModal(item));
+    table.appendChild(card);
+    
+    setTimeout(() => card.classList.add('animate-pop'), index * 50);
   });
+
+  container.appendChild(table);
+}
+
+function getPerspectiveIcon(perspectiva) {
+  switch(perspectiva) {
+    case "Financial": return '<i class="fas fa-chart-line"></i>';
+    case "Customer": return '<i class="fas fa-users"></i>';
+    case "InternalProcesses": return '<i class="fas fa-cogs"></i>';
+    case "LearningGrowth": return '<i class="fas fa-graduation-cap"></i>';
+    case "Sustainability": return '<i class="fas fa-leaf"></i>';
+    default: return '<i class="fas fa-chart-pie"></i>';
+  }
+}
+
+function renderProgressBar(cumplimiento) {
+  if (cumplimiento === null || isNaN(cumplimiento)) return '<div class="progress-text">N/A</div>';
   
-  container.innerHTML = html;
+  const progressWidth = Math.min(Math.max(cumplimiento, 0), 100);
+  let progressColor = "var(--neutral)";
+  if (cumplimiento >= 90) progressColor = "var(--positive)";
+  else if (cumplimiento >= 70) progressColor = "var(--neutral)";
+  else progressColor = "var(--negative)";
   
-  setTimeout(() => {
-    const cards = container.querySelectorAll('.metric-card');
-    cards.forEach((card, index) => {
-      setTimeout(() => {
-        card.classList.add('animate-pop');
-      }, index * 50);
-    });
-  }, 100);
+  return `
+    <div class="progress-container">
+      <div class="progress-text">${cumplimiento.toFixed(0)}%</div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width: ${progressWidth}%; background: ${progressColor};"></div>
+      </div>
+    </div>
+  `;
 }
 
 async function loadAvailablePeriods() {
@@ -423,20 +354,15 @@ async function loadAvailablePeriods() {
   if (!sheetData) return;
   
   const headers = sheetData[0];
-  
   const actualPeriods = headers
     .filter(h => h.startsWith("Actual "))
     .map(h => h.replace("Actual ", ""))
     .filter(p => p.match(/[A-Za-z]{3}-\d{2}/));
 
   const periodoSelect = document.getElementById("periodo");
-  periodoSelect.innerHTML = actualPeriods.map(p => 
-    `<option value="${p}">${p}</option>`
-  ).join("");
+  periodoSelect.innerHTML = actualPeriods.map(p => `<option value="${p}">${p}</option>`).join("");
 
-  if (actualPeriods.length > 0) {
-    periodoSelect.value = actualPeriods[actualPeriods.length - 1];
-  }
+  if (actualPeriods.length > 0) periodoSelect.value = actualPeriods[actualPeriods.length - 1];
 }
 
 async function loadData() {
@@ -444,14 +370,11 @@ async function loadData() {
   const comparacion = document.getElementById("comparacion").value;
   
   document.querySelectorAll(".metrics-container").forEach(el => {
-    if (el) {
-      el.innerHTML = '<div class="loading"><i class="fas fa-spinner"></i> Cargando datos...</div>';
-    }
+    if (el) el.innerHTML = '<div class="loading"><i class="fas fa-spinner"></i> Cargando datos...</div>';
   });
   
   const periodDisplay = document.getElementById("periodDisplay");
   const errorContainer = document.getElementById("errorContainer");
-  
   if (periodDisplay) periodDisplay.style.display = "none";
   if (errorContainer) errorContainer.style.display = "none";
   
@@ -472,7 +395,6 @@ async function loadData() {
   
   const currentPeriod = document.getElementById("currentPeriod");
   const comparePeriod = document.getElementById("comparePeriod");
-  
   if (currentPeriod) currentPeriod.textContent = response.periodoActual;
   if (comparePeriod) comparePeriod.textContent = response.tipoComparacion === "Trimestre Anterior" 
     ? `${response.tipoComparacion} (${response.periodoComparacion})` 
@@ -492,21 +414,16 @@ async function loadData() {
   };
   
   response.data.forEach(item => {
-    if (!groupedData[item.perspectiva]) {
-      groupedData[item.perspectiva] = [];
-    }
+    if (!groupedData[item.perspectiva]) groupedData[item.perspectiva] = [];
     groupedData[item.perspectiva].push(item);
     
     if (summaryStats[item.perspectiva]) {
       summaryStats[item.perspectiva].total++;
-      if (item.esFavorable) {
-        summaryStats[item.perspectiva].favorable++;
-      }
+      if (item.esFavorable) summaryStats[item.perspectiva].favorable++;
     }
   });
   
   updateSummaryCards(summaryStats);
-  
   renderPerspective("financial", groupedData["Financial"] || []);
   renderPerspective("customer", groupedData["Customer"] || []);
   renderPerspective("internalProcesses", groupedData["InternalProcesses"] || []);
@@ -523,10 +440,7 @@ function scrollToPerspective(perspective) {
   const element = document.getElementById(`${perspective}Container`);
   if (element) {
     element.scrollIntoView({ behavior: 'smooth' });
-    
-    if (element.classList.contains('collapsed')) {
-      element.classList.remove('collapsed');
-    }
+    if (element.classList.contains('collapsed')) element.classList.remove('collapsed');
   }
 }
 
@@ -536,44 +450,26 @@ function showMetricModal(metric) {
 
 function formatNumber(value, unidad) {
   if (value === null || value === undefined) return "N/A";
-  
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
-  
   if (isNaN(numValue)) return value;
   
-  if (unidad === "USD") {
-    return `$${numValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
-  } 
+  if (unidad === "USD") return `$${numValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
   else if (unidad === "%" || unidad === "puntos" || unidad === "ratio" || 
            unidad === "veces/año" || unidad === "DPMO" || 
            unidad === "accidentes/200k horas" || unidad === "horas/empleado" || 
-           unidad === "ideas/empleado") {
-    return `${numValue.toFixed(2).replace(".", ",")}${unidad === "%" ? "%" : ""}`;
-  }
-  else if (unidad === "puntos (1-10)") {
-    return `${numValue.toFixed(1).replace(".", ",")}`;
-  }
-  else if (unidad === "ton CO2" || unidad === "horas") {
-    return `${numValue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")} ${unidad}`;
-  }
-  else if (unidad === "días" || unidad === "minutos") {
-    return `${numValue.toFixed(0)} ${unidad}`;
-  }
+           unidad === "ideas/empleado") return `${numValue.toFixed(2).replace(".", ",")}${unidad === "%" ? "%" : ""}`;
+  else if (unidad === "puntos (1-10)") return `${numValue.toFixed(1).replace(".", ",")}`;
+  else if (unidad === "ton CO2" || unidad === "horas") return `${numValue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".")} ${unidad}`;
+  else if (unidad === "días" || unidad === "minutos") return `${numValue.toFixed(0)} ${unidad}`;
   else {
-    if (Number.isInteger(numValue)) {
-      return numValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    } else {
-      return numValue.toFixed(2).replace(".", ",");
-    }
+    if (Number.isInteger(numValue)) return numValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    else return numValue.toFixed(2).replace(".", ",");
   }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
   loadAvailablePeriods().then(() => {
-    if (document.getElementById("periodo").options.length > 1) {
-      loadData();
-    }
+    if (document.getElementById("periodo").options.length > 1) loadData();
   });
-  
   document.getElementById("loadDataBtn").addEventListener('click', loadData);
 });
