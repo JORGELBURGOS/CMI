@@ -3,28 +3,37 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Dashboard interactivo de Balanced Scorecard con métricas financieras, de clientes, procesos internos y más">
   <title>Balanced Scorecard Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/chart.js" rel="stylesheet">
   <link href="styles.css" rel="stylesheet">
+  <style>
+    /* Prevent FOUC */
+    body:not(.loaded) {
+      opacity: 0;
+      visibility: hidden;
+    }
+  </style>
 </head>
 <body>
   <div class="header">
-    <h1><i class="fas fa-chart-network"></i> Balanced Scorecard 360°</h1>
+    <h1><i class="fas fa-chart-network" aria-hidden="true"></i> Balanced Scorecard 360°</h1>
   </div>
   
   <div class="filters">
     <div class="filter-group">
-      <label for="periodo"><i class="fas fa-calendar-week"></i> Período Principal</label>
-      <select id="periodo">
+      <label for="periodo"><i class="fas fa-calendar-week" aria-hidden="true"></i> Período Principal</label>
+      <select id="periodo" aria-label="Seleccionar período principal">
         <option value="">Cargando períodos...</option>
       </select>
     </div>
     
     <div class="filter-group">
-      <label for="comparacion"><i class="fas fa-not-equal"></i> Comparar con</label>
-      <select id="comparacion">
+      <label for="comparacion"><i class="fas fa-not-equal" aria-hidden="true"></i> Comparar con</label>
+      <select id="comparacion" aria-label="Seleccionar período de comparación">
         <option value="Mes Anterior">Mes Anterior</option>
         <option value="Trimestre Anterior">Trimestre Anterior</option>
         <option value="Año Anterior">Año Anterior</option>
@@ -32,102 +41,176 @@
       </select>
     </div>
     
-    <button id="loadDataBtn"><i class="fas fa-sync-alt"></i> Actualizar Dashboard</button>
+    <div class="filter-group">
+      <label for="search"><i class="fas fa-search" aria-hidden="true"></i> Buscar KPI</label>
+      <input type="text" id="search" placeholder="Buscar indicador..." aria-label="Buscar indicadores">
+    </div>
+    
+    <button id="loadDataBtn" aria-label="Actualizar dashboard">
+      <i class="fas fa-sync-alt" aria-hidden="true"></i> Actualizar Dashboard
+    </button>
   </div>
   
-  <div id="periodDisplay" class="period-info" style="display: none;">
-    <i class="fas fa-info-circle"></i> Mostrando datos de <strong id="currentPeriod"></strong> comparados con <strong id="comparePeriod"></strong>
+  <div id="periodDisplay" class="period-info" style="display: none;" aria-live="polite">
+    <i class="fas fa-info-circle" aria-hidden="true"></i> Mostrando datos de <strong id="currentPeriod"></strong> comparados con <strong id="comparePeriod"></strong>
   </div>
   
-  <div id="errorContainer" style="display: none;"></div>
+  <div id="errorContainer" style="display: none;" role="alert"></div>
   
   <div class="dashboard-container">
     <div class="summary-cards">
-      <div class="summary-card financial-bg" onclick="scrollToPerspective('financial')">
-        <h3><i class="fas fa-chart-line"></i> Financiero</h3>
+      <div class="summary-card financial-bg" onclick="scrollToPerspective('financial')" role="button" tabindex="0" aria-label="Resumen financiero">
+        <h3><i class="fas fa-chart-line" aria-hidden="true"></i> Financiero</h3>
         <div class="summary-value" id="FinancialSummary">0%</div>
         <p>Indicadores favorables</p>
       </div>
-      <div class="summary-card customer-bg" onclick="scrollToPerspective('customer')">
-        <h3><i class="fas fa-users"></i> Clientes</h3>
+      <div class="summary-card customer-bg" onclick="scrollToPerspective('customer')" role="button" tabindex="0" aria-label="Resumen de clientes">
+        <h3><i class="fas fa-users" aria-hidden="true"></i> Clientes</h3>
         <div class="summary-value" id="CustomerSummary">0%</div>
         <p>Indicadores favorables</p>
       </div>
-      <div class="summary-card processes-bg" onclick="scrollToPerspective('internalProcesses')">
-        <h3><i class="fas fa-cogs"></i> Procesos</h3>
+      <div class="summary-card processes-bg" onclick="scrollToPerspective('internalProcesses')" role="button" tabindex="0" aria-label="Resumen de procesos">
+        <h3><i class="fas fa-cogs" aria-hidden="true"></i> Procesos</h3>
         <div class="summary-value" id="InternalProcessesSummary">0%</div>
         <p>Indicadores favorables</p>
       </div>
-      <div class="summary-card learning-bg" onclick="scrollToPerspective('learningGrowth')">
-        <h3><i class="fas fa-graduation-cap"></i> Aprendizaje</h3>
+      <div class="summary-card learning-bg" onclick="scrollToPerspective('learningGrowth')" role="button" tabindex="0" aria-label="Resumen de aprendizaje">
+        <h3><i class="fas fa-graduation-cap" aria-hidden="true"></i> Aprendizaje</h3>
         <div class="summary-value" id="LearningGrowthSummary">0%</div>
         <p>Indicadores favorables</p>
       </div>
-      <div class="summary-card sustainability-bg" onclick="scrollToPerspective('sustainability')">
-        <h3><i class="fas fa-leaf"></i> Sostenibilidad</h3>
+      <div class="summary-card sustainability-bg" onclick="scrollToPerspective('sustainability')" role="button" tabindex="0" aria-label="Resumen de sostenibilidad">
+        <h3><i class="fas fa-leaf" aria-hidden="true"></i> Sostenibilidad</h3>
         <div class="summary-value" id="SustainabilitySummary">0%</div>
         <p>Indicadores favorables</p>
       </div>
     </div>
     
     <div class="main-content">
-      <div id="financialContainer" class="perspective-container">
-        <div class="perspective-header financial" onclick="togglePerspective('financial')">
-          <h2><i class="fas fa-chart-line"></i> Perspectiva Financiera</h2>
+      <div id="financialContainer" class="perspective-container collapsed">
+        <div class="perspective-header financial" onclick="togglePerspective('financial')" role="button" tabindex="0" aria-expanded="false" aria-controls="financialMetrics">
+          <h2><i class="fas fa-chart-line" aria-hidden="true"></i> Perspectiva Financiera</h2>
           <span class="count" id="FinancialCount">0 KPI</span>
-          <i class="fas fa-chevron-down toggle-icon"></i>
+          <i class="fas fa-chevron-down toggle-icon" aria-hidden="true"></i>
         </div>
         <div id="financialMetrics" class="metrics-container">
-          <div class="loading"><i class="fas fa-spinner"></i> Cargando datos financieros...</div>
+          <div class="loading"><i class="fas fa-spinner" aria-hidden="true"></i> Cargando datos financieros...</div>
         </div>
+        <div class="pagination-controls" id="financialPagination" style="display: none;"></div>
       </div>
       
-      <div id="customerContainer" class="perspective-container">
-        <div class="perspective-header customer" onclick="togglePerspective('customer')">
-          <h2><i class="fas fa-users"></i> Perspectiva del Cliente</h2>
+      <div id="customerContainer" class="perspective-container collapsed">
+        <div class="perspective-header customer" onclick="togglePerspective('customer')" role="button" tabindex="0" aria-expanded="false" aria-controls="customerMetrics">
+          <h2><i class="fas fa-users" aria-hidden="true"></i> Perspectiva del Cliente</h2>
           <span class="count" id="CustomerCount">0 KPI</span>
-          <i class="fas fa-chevron-down toggle-icon"></i>
+          <i class="fas fa-chevron-down toggle-icon" aria-hidden="true"></i>
         </div>
         <div id="customerMetrics" class="metrics-container">
-          <div class="loading"><i class="fas fa-spinner"></i> Cargando datos de clientes...</div>
+          <div class="loading"><i class="fas fa-spinner" aria-hidden="true"></i> Cargando datos de clientes...</div>
         </div>
+        <div class="pagination-controls" id="customerPagination" style="display: none;"></div>
       </div>
       
-      <div id="internalProcessesContainer" class="perspective-container">
-        <div class="perspective-header processes" onclick="togglePerspective('internalProcesses')">
-          <h2><i class="fas fa-cogs"></i> Procesos Internos</h2>
+      <div id="internalProcessesContainer" class="perspective-container collapsed">
+        <div class="perspective-header processes" onclick="togglePerspective('internalProcesses')" role="button" tabindex="0" aria-expanded="false" aria-controls="internalProcessesMetrics">
+          <h2><i class="fas fa-cogs" aria-hidden="true"></i> Procesos Internos</h2>
           <span class="count" id="InternalProcessesCount">0 KPI</span>
-          <i class="fas fa-chevron-down toggle-icon"></i>
+          <i class="fas fa-chevron-down toggle-icon" aria-hidden="true"></i>
         </div>
         <div id="internalProcessesMetrics" class="metrics-container">
-          <div class="loading"><i class="fas fa-spinner"></i> Cargando datos de procesos...</div>
+          <div class="loading"><i class="fas fa-spinner" aria-hidden="true"></i> Cargando datos de procesos...</div>
         </div>
+        <div class="pagination-controls" id="internalProcessesPagination" style="display: none;"></div>
       </div>
       
-      <div id="learningGrowthContainer" class="perspective-container">
-        <div class="perspective-header learning" onclick="togglePerspective('learningGrowth')">
-          <h2><i class="fas fa-graduation-cap"></i> Aprendizaje y Crecimiento</h2>
+      <div id="learningGrowthContainer" class="perspective-container collapsed">
+        <div class="perspective-header learning" onclick="togglePerspective('learningGrowth')" role="button" tabindex="0" aria-expanded="false" aria-controls="learningGrowthMetrics">
+          <h2><i class="fas fa-graduation-cap" aria-hidden="true"></i> Aprendizaje y Crecimiento</h2>
           <span class="count" id="LearningGrowthCount">0 KPI</span>
-          <i class="fas fa-chevron-down toggle-icon"></i>
+          <i class="fas fa-chevron-down toggle-icon" aria-hidden="true"></i>
         </div>
         <div id="learningGrowthMetrics" class="metrics-container">
-          <div class="loading"><i class="fas fa-spinner"></i> Cargando datos de aprendizaje...</div>
+          <div class="loading"><i class="fas fa-spinner" aria-hidden="true"></i> Cargando datos de aprendizaje...</div>
         </div>
+        <div class="pagination-controls" id="learningGrowthPagination" style="display: none;"></div>
       </div>
       
-      <div id="sustainabilityContainer" class="perspective-container">
-        <div class="perspective-header sustainability" onclick="togglePerspective('sustainability')">
-          <h2><i class="fas fa-leaf"></i> Sostenibilidad</h2>
+      <div id="sustainabilityContainer" class="perspective-container collapsed">
+        <div class="perspective-header sustainability" onclick="togglePerspective('sustainability')" role="button" tabindex="0" aria-expanded="false" aria-controls="sustainabilityMetrics">
+          <h2><i class="fas fa-leaf" aria-hidden="true"></i> Sostenibilidad</h2>
           <span class="count" id="SustainabilityCount">0 KPI</span>
-          <i class="fas fa-chevron-down toggle-icon"></i>
+          <i class="fas fa-chevron-down toggle-icon" aria-hidden="true"></i>
         </div>
         <div id="sustainabilityMetrics" class="metrics-container">
-          <div class="loading"><i class="fas fa-spinner"></i> Cargando datos de sostenibilidad...</div>
+          <div class="loading"><i class="fas fa-spinner" aria-hidden="true"></i> Cargando datos de sostenibilidad...</div>
         </div>
+        <div class="pagination-controls" id="sustainabilityPagination" style="display: none;"></div>
       </div>
     </div>
   </div>
 
+  <!-- Modal para detalles del KPI -->
+  <div id="metricModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle">Detalles del Indicador</h2>
+        <button class="close-modal" aria-label="Cerrar modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-section">
+          <h3><i class="fas fa-info-circle"></i> Información Básica</h3>
+          <div class="info-grid">
+            <div><strong>Nombre:</strong> <span id="modalIndicatorName"></span></div>
+            <div><strong>Perspectiva:</strong> <span id="modalPerspective"></span></div>
+            <div><strong>Fórmula:</strong> <span id="modalFormula"></span></div>
+            <div><strong>Responsable:</strong> <span id="modalResponsible"></span></div>
+            <div><strong>Unidad:</strong> <span id="modalUnit"></span></div>
+            <div><strong>Polaridad:</strong> <span id="modalPolarity"></span></div>
+          </div>
+        </div>
+        
+        <div class="modal-section">
+          <h3><i class="fas fa-chart-line"></i> Valores Actuales</h3>
+          <div class="value-grid">
+            <div>
+              <strong>Valor Actual:</strong>
+              <span id="modalCurrentValue" class="value-display"></span>
+            </div>
+            <div>
+              <strong>Comparación:</strong>
+              <span id="modalComparisonValue" class="value-display"></span>
+            </div>
+            <div>
+              <strong>Diferencia:</strong>
+              <span id="modalDifference" class="value-display"></span>
+            </div>
+            <div>
+              <strong>Cumplimiento:</strong>
+              <span id="modalCompliance" class="value-display"></span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-section">
+          <h3><i class="fas fa-history"></i> Tendencia Histórica</h3>
+          <div class="chart-container">
+            <canvas id="trendChart" aria-label="Gráfico de tendencia histórica del indicador"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-button" id="closeModalBtn">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="script.js"></script>
+  <script>
+    // Mostrar contenido cuando esté listo
+    document.addEventListener('DOMContentLoaded', function() {
+      document.body.classList.add('loaded');
+    });
+  </script>
 </body>
 </html>
